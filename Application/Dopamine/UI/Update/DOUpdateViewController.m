@@ -94,7 +94,7 @@
 
     BOOL envUpdate = [[DOUIManager sharedInstance] environmentUpdateAvailable];
     
-    self.button = [DOActionMenuButton buttonWithAction:[UIAction actionWithTitle:DOLocalizedString(envUpdate ? @"Button_Reboot_Device" : @"Button_Update") image:[UIImage systemImageNamed:@"arrow.down" withConfiguration:[DOGlobalAppearance smallIconImageConfiguration]] identifier:@"update" handler:^(__kindof UIAction * _Nonnull action) {
+    self.button = [DOActionMenuButton buttonWithAction:[UIAction actionWithTitle:DOLocalizedString(envUpdate ? @"Button_Reboot_Device" : @"Button_Update") image:[UIImage systemImageNamed:(envUpdate ? @"arrow.clockwise.circle" : @"arrow.down") withConfiguration:[DOGlobalAppearance smallIconImageConfiguration]] identifier:@"update" handler:^(__kindof UIAction * _Nonnull action) {
         if (envUpdate)
         {
             [[DOEnvironmentManager sharedManager] reboot];
