@@ -83,6 +83,7 @@ typedef NS_ENUM(NSInteger, JBErrorCode) {
             NULL,
             NULL,
             NULL,
+            NULL,
         };
 
         uint32_t idx = 8;
@@ -285,17 +286,8 @@ typedef NS_ENUM(NSInteger, JBErrorCode) {
 - (NSError *)ensureDevModeEnabled
 {
     if (@available(iOS 16.0, *)) {
-        uint64_t developer_mode_state = kread64(ksymbol(developer_mode_enabled));
-        if ((developer_mode_state & 0xff) == 0 || (developer_mode_state & 0xff) == 1) {
-            // On iOS 16.0 - 16.3, developer_mode_state is a bool
-            if (developer_mode_state == 0) {
-                kwrite8(ksymbol(developer_mode_enabled), 1);
-            }
-        }
-        else if (kread8(developer_mode_state) == 0) {
-            // On iOS 16.4+, developer_mode_state is a pointer to a bool
-            kwrite8(developer_mode_state, 1);
-        }
+        uint64_t developer_mode_storage = kread64(ksymbol(developer_mode_enabled));
+        kwrite8(developer_mode_storage, 1);
     }
     return nil;
 }
@@ -391,39 +383,48 @@ int ensure_randomized_cdhash(const char* inputPath, void* cdhashOut);
     return nil;
 }
 
-//- (NSError *)createFakeLib
-//{
-//    int r = exec_cmd(JBRootPath("/basebin/jbctl"), "internal", "fakelib_init", NULL);
-//    if (r != 0) {
-//        return [NSError errorWithDomain:JBErrorDomain code:JBErrorCodeFailedInitFakeLib userInfo:@{NSLocalizedDescriptionKey : [NSString stringWithFormat:@"Creating fakelib failed with error: %d", r]}];
-//    }
-//
-//    cdhash_t *cdhashes;
-//    uint32_t cdhashesCount;
-//    macho_collect_untrusted_cdhashes(JBRootPath("/basebin/.fakelib/dyld"), NULL, NULL, &cdhashes, &cdhashesCount);
-//    if (cdhashesCount != 1) return [NSError errorWithDomain:JBErrorDomain code:JBErrorCodeFailedInitFakeLib userInfo:@{NSLocalizedDescriptionKey : [NSString stringWithFormat:@"Got unexpected number of cdhashes for dyld???: %d", cdhashesCount]}];
-//
-//    trustcache_file_v1 *dyldTCFile = NULL;
-//    r = trustcache_file_build_from_cdhashes(cdhashes, cdhashesCount, &dyldTCFile);
-//    free(cdhashes);
-//    if (r == 0) {
-//        int r = trustcache_file_upload_with_uuid(dyldTCFile, DYLD_TRUSTCACHE_UUID);
-//        if (r != 0) return [NSError errorWithDomain:JBErrorDomain code:JBErrorCodeFailedInitFakeLib userInfo:@{NSLocalizedDescriptionKey : [NSString stringWithFormat:@"Failed to upload dyld trustcache: %d", r]}];
-//        free(dyldTCFile);
-//    }
-//    else {
-//        return [NSError errorWithDomain:JBErrorDomain code:JBErrorCodeFailedInitFakeLib userInfo:@{NSLocalizedDescriptionKey : @"Failed to build dyld trustcache"}];
-//    }
-//
-//    r = exec_cmd(JBRootPath("/basebin/jbctl"), "internal", "fakelib_mount", NULL);
-//    if (r != 0) {
-//        return [NSError errorWithDomain:JBErrorDomain code:JBErrorCodeFailedInitFakeLib userInfo:@{NSLocalizedDescriptionKey : [NSString stringWithFormat:@"Mounting fakelib failed with error: %d", r]}];
-//    }
-//
-//    // Now that fakelib is up, we want to make systemhook inject into any binary we spawn
-//    setenv("DYLD_INSERT_LIBRARIES", "/usr/lib/systemhook.dylib", 1);
-//    return nil;
-//}
+// - (NSError *)applyProtection
+// {
+//     int r = exec_cmd(JBRootPath("/basebin/jbctl"), "internal", "protection_init", NULL);
+//     if (r != 0) {
+//         return [NSError errorWithDomain:JBErrorDomain code:JBErrorCodeFailedInitProtection userInfo:@{NSLocalizedDescriptionKey : [NSString stringWithFormat:@"Failed initializing protection with error: %d", r]}];
+//     }
+//     return nil;
+// }
+
+// - (NSError *)createFakeLib
+// {
+//     int r = exec_cmd(JBRootPath("/basebin/jbctl"), "internal", "fakelib_init", NULL);
+//     if (r != 0) {
+//         return [NSError errorWithDomain:JBErrorDomain code:JBErrorCodeFailedInitFakeLib userInfo:@{NSLocalizedDescriptionKey : [NSString stringWithFormat:@"Creating fakelib failed with error: %d", r]}];
+//     }
+
+//     cdhash_t *cdhashes = NULL;
+//     uint32_t cdhashesCount = 0;
+//     macho_collect_untrusted_cdhashes(JBRootPath("/basebin/.fakelib/dyld"), NULL, NULL, NULL, NULL, 0, &cdhashes, &cdhashesCount);
+//     if (cdhashesCount != 1) return [NSError errorWithDomain:JBErrorDomain code:JBErrorCodeFailedInitFakeLib userInfo:@{NSLocalizedDescriptionKey : [NSString stringWithFormat:@"Got unexpected number of cdhashes for dyld???: %d", cdhashesCount]}];
+    
+//     trustcache_file_v1 *dyldTCFile = NULL;
+//     r = trustcache_file_build_from_cdhashes(cdhashes, cdhashesCount, &dyldTCFile);
+//     free(cdhashes);
+//     if (r == 0) {
+//         int r = trustcache_file_upload_with_uuid(dyldTCFile, DYLD_TRUSTCACHE_UUID);
+//         if (r != 0) return [NSError errorWithDomain:JBErrorDomain code:JBErrorCodeFailedInitFakeLib userInfo:@{NSLocalizedDescriptionKey : [NSString stringWithFormat:@"Failed to upload dyld trustcache: %d", r]}];
+//         free(dyldTCFile);
+//     }
+//     else {
+//         return [NSError errorWithDomain:JBErrorDomain code:JBErrorCodeFailedInitFakeLib userInfo:@{NSLocalizedDescriptionKey : @"Failed to build dyld trustcache"}];
+//     }
+    
+//     r = exec_cmd(JBRootPath("/basebin/jbctl"), "internal", "fakelib_mount", NULL);
+//     if (r != 0) {
+//         return [NSError errorWithDomain:JBErrorDomain code:JBErrorCodeFailedInitFakeLib userInfo:@{NSLocalizedDescriptionKey : [NSString stringWithFormat:@"Mounting fakelib failed with error: %d", r]}];
+//     }
+    
+//     // Now that fakelib is up, we want to make systemhook inject into any binary we spawn
+//     setenv("DYLD_INSERT_LIBRARIES", "/usr/lib/systemhook.dylib", 1);
+//     return nil;
+// }
 
 - (NSError *)ensureNoDuplicateApps
 {
@@ -553,9 +554,16 @@ int ensure_randomized_cdhash(const char* inputPath, void* cdhashOut);
     *errOut = [self injectLaunchdHook];
     if (*errOut) return;
     
-//    [[DOUIManager sharedInstance] sendLog:DOLocalizedString(@"Applying Bind Mount") debug:NO];
-//    *errOut = [self createFakeLib];
-//    if (*errOut) return;
+    // // Now that we can, protect important system files by bind mounting on top of them
+    // // This will be always be done during the userspace reboot
+    // // We also do it now though in case there is a failure between the now step and the userspace reboot
+    // [[DOUIManager sharedInstance] sendLog:DOLocalizedString(@"Initializing Protection") debug:NO];
+    // *errOut = [self applyProtection];
+    // if (*errOut) return;
+    
+    // [[DOUIManager sharedInstance] sendLog:DOLocalizedString(@"Applying Bind Mount") debug:NO];
+    // *errOut = [self createFakeLib];
+    // if (*errOut) return;
     
     setenv("DYLD_INSERT_LIBRARIES", JBRootPath("/basebin/systemhook.dylib"), 1);
     

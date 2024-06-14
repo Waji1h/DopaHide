@@ -45,7 +45,6 @@ BOOL preferencePlistNeedsRedirection(NSString *plistPath)
 	return ![additionalSystemPlistNames containsObject:plistName];
 }
 
-
 BOOL (*orig_CFPrefsGetPathForTriplet)(CFStringRef, CFStringRef, BOOL, CFStringRef, UInt8*);
 BOOL new_CFPrefsGetPathForTriplet(CFStringRef bundleIdentifier, CFStringRef user, BOOL byHost, CFStringRef path, UInt8 *buffer)
 {

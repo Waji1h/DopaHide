@@ -35,19 +35,8 @@ static int platform_jbsettings_get(const char *key, xpc_object_t *valueOut)
 		return 0;
 	}
 	else if(strcmp(key, "DevMode")==0) {
-		int state = 1;
-		uint64_t developer_mode_state = kread64(ksymbol(developer_mode_enabled));
-		if ((developer_mode_state & 0xff) == 0 || (developer_mode_state & 0xff) == 1) {
-			// On iOS 16.0 - 16.3, developer_mode_state is a bool
-			state = (uint8_t)developer_mode_state;
-		}
-		else {
-			// On iOS 16.4+, developer_mode_state is a pointer to a bool
-			uint8_t devmode = kread8(developer_mode_state);
-			if(devmode==0 || devmode==1) {
-				state = devmode;
-			}
-		}
+        uint64_t developer_mode_storage = kread64(ksymbol(developer_mode_enabled));
+		int state = kread8(developer_mode_storage);
 		*valueOut = xpc_bool_create(state);
 		return 0;
 	}
@@ -62,17 +51,8 @@ static int platform_jbsettings_set(const char *key, xpc_object_t value)
 	}
 	else if(strcmp(key, "DevMode")==0 && xpc_get_type(value) == XPC_TYPE_BOOL) {
 		int state = xpc_bool_get_value(value);
-		uint64_t developer_mode_state = kread64(ksymbol(developer_mode_enabled));
-		if ((developer_mode_state & 0xff) == 0 || (developer_mode_state & 0xff) == 1) {
-			// On iOS 16.0 - 16.3, developer_mode_state is a bool
-			if (developer_mode_state != state) {
-				kwrite8(ksymbol(developer_mode_enabled), state);
-			}
-		}
-		else if (kread8(developer_mode_state) != state) {
-			// On iOS 16.4+, developer_mode_state is a pointer to a bool
-			kwrite8(developer_mode_state, state);
-		}
+        uint64_t developer_mode_storage = kread64(ksymbol(developer_mode_enabled));
+        kwrite8(developer_mode_storage, state);
 		return 0;
 	}
 	return -1;

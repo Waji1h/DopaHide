@@ -25,6 +25,13 @@ int necp_session_action(int necp_fd, uint32_t action, uint8_t *in_buffer, size_t
 #define SYSCALL_NECP_SESSION_OPEN 0x20A
 #define SYSCALL_NECP_SESSION_ACTION 0x20B
 
+#define JBRootPath(path) ({ \
+	char *outPath = alloca(PATH_MAX); \
+	strlcpy(outPath, JB_RootPath, PATH_MAX); \
+	strlcat(outPath, path, PATH_MAX); \
+	(outPath); \
+})
+
 extern char **environ;
 bool gShouldFixFork = false;
 bool gFullyDebugged = false;

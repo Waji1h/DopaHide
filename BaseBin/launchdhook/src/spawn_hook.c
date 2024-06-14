@@ -6,7 +6,6 @@
 #include "boomerang.h"
 #include "crashreporter.h"
 #include "update.h"
-#include <substrate.h>
 #include <libjailbreak/log.h>
 #include <libjailbreak/util.h>
 #include <substrate.h>

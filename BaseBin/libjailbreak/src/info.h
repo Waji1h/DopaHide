@@ -293,9 +293,6 @@ extern struct system_info gSystemInfo;
 #define JAILBREAK_SETTINGS_ITERATE(ctx, iterator) \
 	iterator(ctx, jailbreakSettings.markAppsAsDebugged);
 
-#define JAILBREAK_SETTINGS_ITERATE(ctx, iterator) \
-	iterator(ctx, jailbreakSettings.markAppsAsDebugged);
-
 #define KERNEL_SYMBOLS_ITERATE(ctx, iterator) \
 	iterator(ctx, kernelSymbol.perfmon_dev_open); \
 	iterator(ctx, kernelSymbol.vn_kqfilter); \

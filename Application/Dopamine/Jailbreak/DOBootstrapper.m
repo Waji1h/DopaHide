@@ -15,9 +15,15 @@
 #import <sys/mount.h>
 #import <dlfcn.h>
 #import <sys/stat.h>
+#import "NSString+Version.h"
 
-#define LIBKRW_DOPAMINE_BUNDLED_VERSION @"2.0.1"
+#define LIBKRW_DOPAMINE_BUNDLED_VERSION @"2.0.3"
 #define BASEBIN_LINK_BUNDLED_VERSION @"1.0.0"
+
+static NSDictionary *gBundledPackages = @{
+    @"libkrw0-dopamine" : LIBKRW_DOPAMINE_BUNDLED_VERSION,
+    @"dopamine-basebin-link" : BASEBIN_LINK_BUNDLED_VERSION,
+};
 
 struct hfs_mount_args {
     char    *fspec;
@@ -772,6 +778,17 @@ int getCFMajorVersion(void)
     return nil;
 }
 
+- (BOOL)shouldInstallPackage:(NSString *)identifier
+{
+    NSString *bundledVersion = gBundledPackages[identifier];
+    if (!bundledVersion) return NO;
+    
+    NSString *installedVersion = [self installedVersionForPackageWithIdentifier:identifier];
+    if (!installedVersion) return YES;
+    
+    return [installedVersion numericalVersionRepresentation] < [bundledVersion numericalVersionRepresentation];
+}
+
 - (NSError *)finalizeBootstrap
 {
     // Initial setup on first jailbreak
@@ -798,27 +815,19 @@ int getCFMajorVersion(void)
         }
     }
     
-    NSString *libkrwDopamineInstalledVersion = [self installedVersionForPackageWithIdentifier:@"libkrw0-dopamine"];
-    NSString *basebinLinkInstalledVersion = [self installedVersionForPackageWithIdentifier:@"dopamine-basebin-link"];
+    BOOL shouldInstallLibkrw = [self shouldInstallPackage:@"libkrw0-dopamine"];
+    BOOL shouldInstallBasebinLink = [self shouldInstallPackage:@"dopamine-basebin-link"];
     
-    if ([self fileOrSymlinkExistsAtPath:NSJBRootPath(@"/usr/lib/libroot.dylib")]) {
-        [[NSFileManager defaultManager] removeItemAtPath:NSJBRootPath(@"/usr/lib/libroot.dylib") error:nil];
-    }
-    [[NSFileManager defaultManager] createSymbolicLinkAtPath:NSJBRootPath(@"/usr/lib/libroot.dylib") withDestinationPath:NSJBRootPath(@"/basebin/libroot.dylib") error:nil];
-    
-    if (
-        !libkrwDopamineInstalledVersion || ![libkrwDopamineInstalledVersion isEqualToString:LIBKRW_DOPAMINE_BUNDLED_VERSION] ||
-        !basebinLinkInstalledVersion || ![basebinLinkInstalledVersion isEqualToString:BASEBIN_LINK_BUNDLED_VERSION]) {
+    if (shouldInstallLibkrw || shouldInstallBasebinLink) {
         [[DOUIManager sharedInstance] sendLog:@"Updating Bundled Packages" debug:NO];
-
-
-        if (!libkrwDopamineInstalledVersion || ![libkrwDopamineInstalledVersion isEqualToString:LIBKRW_DOPAMINE_BUNDLED_VERSION]) {
-            NSString *libkrwPath = [[NSBundle mainBundle].bundlePath stringByAppendingPathComponent:@"libkrw-plugin.deb"];
+        
+        if (shouldInstallLibkrw) {
+            NSString *libkrwPath = [[NSBundle mainBundle].bundlePath stringByAppendingPathComponent:@"libkrw-dopamine.deb"];
             int r = [self installPackage:libkrwPath];
             if (r != 0) return [NSError errorWithDomain:bootstrapErrorDomain code:BootstrapErrorCodeFailedFinalising userInfo:@{NSLocalizedDescriptionKey : [NSString stringWithFormat:@"Failed to install the libkrw plugin: %d\n", r]}];
         }
-
-        if (!basebinLinkInstalledVersion || ![basebinLinkInstalledVersion isEqualToString:BASEBIN_LINK_BUNDLED_VERSION]) {
+        
+        if (shouldInstallBasebinLink) {
             // Clean symlinks from earlier Dopamine versions
             if (![self fileOrSymlinkExistsAtPath:NSJBRootPath(@"/usr/bin/opainject")]) {
                 [[NSFileManager defaultManager] removeItemAtPath:NSJBRootPath(@"/usr/bin/opainject") error:nil];
@@ -839,6 +848,11 @@ int getCFMajorVersion(void)
             if (r != 0) return [NSError errorWithDomain:bootstrapErrorDomain code:BootstrapErrorCodeFailedFinalising userInfo:@{NSLocalizedDescriptionKey : [NSString stringWithFormat:@"Failed to install basebin link: %d\n", r]}];
         }
     }
+
+    if ([self fileOrSymlinkExistsAtPath:NSJBRootPath(@"/usr/lib/libroot.dylib")]) {
+        [[NSFileManager defaultManager] removeItemAtPath:NSJBRootPath(@"/usr/lib/libroot.dylib") error:nil];
+    }
+    [[NSFileManager defaultManager] createSymbolicLinkAtPath:NSJBRootPath(@"/usr/lib/libroot.dylib") withDestinationPath:NSJBRootPath(@"/basebin/libroot.dylib") error:nil];
     
     [[NSString stringWithFormat:@"%d",DOPAMINE_INSTALL_VERSION] writeToFile:NSJBRootPath(@"/.installed_dopamine") atomically:YES encoding:NSUTF8StringEncoding error:nil];
     

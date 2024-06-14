@@ -10,13 +10,6 @@ extern char HOOK_DYLIB_PATH[];
 extern char *JB_BootUUID;
 extern char *JB_RootPath;
 
-#define JBRootPath(path) ({ \
-	char *outPath = alloca(PATH_MAX); \
-	strlcpy(outPath, JB_RootPath, PATH_MAX); \
-	strlcat(outPath, path, PATH_MAX); \
-	(outPath); \
-})
-
 bool stringStartsWith(const char *str, const char* prefix);
 bool stringEndsWith(const char* str, const char* suffix);
 
